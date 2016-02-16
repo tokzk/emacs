@@ -3065,6 +3065,7 @@ static const struct frame_parm_table frame_parms[] =
   {"fullscreen",                SYMBOL_INDEX (Qfullscreen)},
   {"font-backend",		SYMBOL_INDEX (Qfont_backend)},
   {"alpha",			SYMBOL_INDEX (Qalpha)},
+  {"decorated",			SYMBOL_INDEX (Qdecorated)},
   {"sticky",			SYMBOL_INDEX (Qsticky)},
   {"tool-bar-position",		SYMBOL_INDEX (Qtool_bar_position)},
 };
@@ -4982,6 +4983,7 @@ syms_of_frame (void)
 #endif
 
   DEFSYM (Qalpha, "alpha");
+  DEFSYM (Qdecorated, "decorated");
   DEFSYM (Qauto_lower, "auto-lower");
   DEFSYM (Qauto_raise, "auto-raise");
   DEFSYM (Qborder_color, "border-color");

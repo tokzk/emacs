@@ -3511,6 +3511,8 @@ This function is an internal primitive--use `make-frame' instead.  */)
 		       RES_TYPE_NUMBER);
   x_default_parameter (f, parms, Qalpha, Qnil,
 		       "alpha", "Alpha", RES_TYPE_NUMBER);
+  x_default_parameter (f, parms, Qdecorated, Qt,
+                       NULL, NULL, RES_TYPE_BOOLEAN);
 
 #if defined (USE_X_TOOLKIT) || defined (USE_GTK)
   /* Create the menu bar.  */
@@ -5773,6 +5775,17 @@ compute_tip_xy (struct frame *f, Lisp_Object parms, Lisp_Object dx, Lisp_Object 
     *root_x = min_x;
 }
 
+void
+x_set_decorated (struct frame *f, Lisp_Object new_value, Lisp_Object old_value)
+{
+  XSetWindowAttributes attributes;
+  attributes.override_redirect = NILP(new_value) ? True : False;
+
+  block_input ();
+  XChangeWindowAttributes (FRAME_X_DISPLAY (f), FRAME_X_WINDOW (f),
+                           CWOverrideRedirect, &attributes);
+  unblock_input ();
+}
 
 DEFUN ("x-show-tip", Fx_show_tip, Sx_show_tip, 1, 6, 0,
        doc: /* Show STRING in a "tooltip" window on frame FRAME.
@@ -6791,6 +6804,7 @@ frame_parm_handler x_frame_parm_handlers[] =
   x_set_fullscreen,
   x_set_font_backend,
   x_set_alpha,
+  x_set_decorated,
   x_set_sticky,
   x_set_tool_bar_position,
 };

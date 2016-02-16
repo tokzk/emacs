@@ -1006,6 +1006,7 @@ frame_parm_handler ns_frame_parm_handlers[] =
   x_set_fullscreen, /* generic OK */
   x_set_font_backend, /* generic OK */
   x_set_alpha,
+  0, /* x_set_decorated */
   0, /* x_set_sticky */
   0, /* x_set_tool_bar_position */
 };
