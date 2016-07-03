@@ -1269,6 +1269,10 @@ x_update_end (struct frame *f)
   XFlush (FRAME_X_DISPLAY (f));
   unblock_input ();
 #endif
+
+  block_input ();
+  run_hook(Qpost_redisplay_hook);
+  unblock_input ();
 }
 
 /* This function is called from various places in xdisp.c
@@ -12879,6 +12883,11 @@ With MS Windows or Nextstep, the value is t.  */);
   Fput (Qmeta, Qmodifier_value, make_number (meta_modifier));
   DEFSYM (Qsuper, "super");
   Fput (Qsuper, Qmodifier_value, make_number (super_modifier));
+
+  DEFSYM (Qpost_redisplay_hook, "post-redisplay-hook");
+  DEFVAR_LISP ("post-redisplay-hook", Vpost_redisplay_hook,
+    doc: /* Hook run at end of redisplay.  */);
+  Vpost_redisplay_hook = Qnil;
 
   DEFVAR_LISP ("x-ctrl-keysym", Vx_ctrl_keysym,
     doc: /* Which keys Emacs uses for the ctrl modifier.
