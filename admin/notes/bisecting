@@ -1,0 +1,108 @@
+HOW TO USE GIT BISECT TO PINPOINT EMACS BUGS  -*- outline -*-
+
+This documents explains how to automate git bisect to find the commit
+that introduced an Emacs bug.  Bisecting automatically works best if
+the bug is easy and quick to reproduce in a clean ‘emacs -Q’ instance.
+
+For an Emacs-independent tutorial on bisecting, run ‘git help bisect’.
+
+* Automating ‘git bisect’
+
+Use ‘git bisect run <some-shell-script>’ to automate the bisecting
+process.  ‘<some-shell-script>’ should build Emacs, run your bug
+reproduction test, and return 0 if the current revision is good, 1 if
+it's bad, and 125 to skip the current revision.
+
+Concretely, ‘<some-shell-script>’ usually looks like this:
+
+    #!/usr/bin/env bash
+
+    # Remove leftovers from previous runs
+    git clean -xfd > /dev/null
+    # Build Emacs and skip commit if build fails
+    (./autogen.sh && ./configure --cache-file=/tmp/emacs.config.cache && make -j4) || exit 125
+
+    # Reproduce the bug, writing output somewhere
+    src/emacs -Q -l "../reproduce-the-bug.el" || exit 125
+
+Some caveats:
+
+- This script cleans Emacs' source directory with ‘git clean -xfd’, so
+  make sure your uncommitted changes are saved somewhere else.  Also,
+  for bisecting small ranges, a full clean and rebuild might not be
+  needed.
+
+- You should produce the ‘../reproduce-your-bug.el’ script on your own
+  (it should check if the bug exists, and return the right error code
+  using ‘(kill-emacs EXIT-CODE)’: 1 if the bug is present, 0 if it is
+  not, and 125 if it can't tell).
+
+* Using ‘git bisect’ to find display-related bugs
+
+** Ways to programmatically detect display bugs
+
+Most bugs that manifest graphically can be checked for by
+programmatically inspecting the following elements:
+
+- text properties
+- window-start and window-end
+- posn-at-point
+- pos-visible-in-window-p
+- frame-geometry
+- window--dump-frame
+- frame--size-history
+- display-monitor-attributes-list
+- C-u C-x =
+- trace-redisplay and trace-to-stderr
+- dump-glyph-matrix and dump-frame-glyph-matrix
+
+** When the above fails
+
+Some bugs are only apparent through visual inspection.  Since building
+Emacs takes a long time, it can be a pain to debug these manually.
+
+If your display bug has a clear manifestation in a screenshot of a
+particular portion of Emacs display, and you have a program, like
+'xwd', that can capture the content of the Emacs frame, and also have
+ImageMagick installed, you can automate the comparison of the
+redisplay results to make the bisection process fully automatic.
+
+Use the following template for ‘../reproduce-the-bug.el’: it requires
+ImageMagick (mogrify and identify) and xwd (if ‘xwd’ isn't available,
+you can use ImageMagick's ‘import’ tool, passing it a ‘-window’
+argument where ‘xwd’ wants ‘id’).
+
+    (defun image-checksum (img-fname)
+      "Compute a checksum of IMG-FNAME's image data."
+      (car (process-lines "identify" "-quiet" "-format" "%#" img-fname)))
+
+    (defun take-screenshot-and-exit (fname x y w h reference-fname)
+      "Save a screenshot of Emacs as FNAME, then exit.
+    X and Y are the coordinates of the top-left point of the area of
+    interest.  W, and H are its dimensions.  This function sets
+    Emacs' return code to 0 if the resulting screenshot matches
+    REFERENCE-FNAME, and 1 otherwise."
+      (let ((wid (frame-parameter nil 'outer-window-id))
+            (crop-spec (format "%dx%d+%d+%d" w h x y)))
+        (call-process "xwd" nil nil nil "-silent" "-id" wid "-out" fname)
+        (call-process "mogrify" nil nil nil fname "-crop" crop-spec))
+      (let ((same-picture (equal (image-checksum fname)
+                                 (image-checksum reference-fname))))
+        (kill-emacs (if same-picture 0 1))))
+
+    (defun main ()
+      ;; Reproduce your bug here
+      …
+      ;; Force a redisplay
+      (redisplay t)
+      ;; Insert rough X, Y, W, H values below
+      (run-with-timer 0 nil #'take-screenshot-and-exit
+                      "screenshot.xwd" … … … … "reference-screenshot.xwd"))
+
+    (main)
+
+This script takes and crops a screenshot of Emacs after reproducing
+your bug, then compares the result to a reference (cropped)
+screenshot, and returns 0 if they match, and 1 otherwise.  Cropping is
+useful to weed out unrelated display changes; try to include only a
+small portion of the screen containing your bug.

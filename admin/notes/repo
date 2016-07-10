@@ -115,7 +115,8 @@ again.
 * Bisecting
 
 This is a semi-automated way to find the revision that introduced a bug.
-Browse 'git help bisect' for technical instructions.
+Browse 'git help bisect' and admin/notes/bisecting for technical
+instructions.
 
 * Maintaining ChangeLog history
 
