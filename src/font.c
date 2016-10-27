@@ -2828,7 +2828,6 @@ font_matching_entity (struct frame *f, Lisp_Object *attrs, Lisp_Object spec)
 	&& (NILP (ftype) || EQ (driver_list->driver->type, ftype)))
       {
 	Lisp_Object cache = font_get_cache (f, driver_list->driver);
-	Lisp_Object copy;
 
 	ASET (work, FONT_TYPE_INDEX, driver_list->driver->type);
 	entity = assoc_no_quit (work, XCDR (cache));
@@ -2837,9 +2836,14 @@ font_matching_entity (struct frame *f, Lisp_Object *attrs, Lisp_Object spec)
 	else
 	  {
 	    entity = driver_list->driver->match (f, work);
-	    copy = copy_font_spec (work);
-	    ASET (copy, FONT_TYPE_INDEX, driver_list->driver->type);
-	    XSETCDR (cache, Fcons (Fcons (copy, entity), XCDR (cache)));
+	    if (!NILP (entity))
+	      {
+		Lisp_Object copy = copy_font_spec (work);
+		Lisp_Object match = Fvector (1, &entity);
+
+		ASET (copy, FONT_TYPE_INDEX, driver_list->driver->type);
+		XSETCDR (cache, Fcons (Fcons (copy, match), XCDR (cache)));
+	      }
 	  }
 	if (! NILP (entity))
 	  break;
